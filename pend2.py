@@ -16,7 +16,8 @@ def fddtita(dtita, tita, dx, gamma):
     costita = cos(tita)
     sintita = sin(tita)
     t0 = g*sintita
-    t1 = - (m/(M-m))*L*costita*sintita*((M * dx)/(m*L))**2
+    t1a = ((M * dx)/(m*L))
+    t1 = - (m/(M-m))*L*costita*sintita*t1a*t1a
     t2 = -costita * gamma/(M-m)
     t3 = (1 + (m/(m-M))*L*costita**2)
     return (t0 + t1 + t2) / t3
@@ -81,25 +82,54 @@ ax.set_aspect('equal')
 line, = ax.plot([], [], 'o-', lw=2)
 anchor, = ax.plot(0, 0, 'ko')
 
+state = {
+    'tita': tita0,
+    'dtita': dtita0,
+    'x': x0,
+    'dx': dx0,
+    'gamma': gamma
+}
+
 def update(frame):
-    theta = res[frame][1]
-    x1 = res[frame][3]
+    # theta = res[frame][1]
+    # x1 = res[frame][3]
+    tita = state['tita']
+    dtita = state['dtita']
+    x = state['x']
+    dx = state['dx']
+    gamma = state['gamma']
+
+    ddtita = fddtita(dtita, tita, dx, gamma)
+    dtita = dtita + ddtita * h
+    tita = tita + dtita * h
+
+    ddx = fddx(dtita, tita, dx, gamma)
+    dx = dx + ddx * h
+    x = x + dx * h
+
+    state['tita'] = tita
+    state['dtita'] = dtita
+    state['x'] = x
+    state['dx'] = dx
+    state['gamma'] = gamma
     
-    x = L * np.sin(theta) + x1
-    y = L * np.cos(theta)
+    x1 = L * np.sin(tita) + x
+    y1 = L * np.cos(tita)
     
-    line.set_data([x1, x], [0, y])
+    line.set_data([x, x1], [0, y1])
     
     return line,
 
 interv = h * 100
-ani = FuncAnimation(fig, update, frames=len(res), interval=interv, blit=True)
+ani = FuncAnimation(fig, update, frames=np.arange(0, 1000),interval=interv, blit=True)
+# ani = FuncAnimation(fig, update, frames=len(res), interval=interv, blit=True)
 # ani = FuncAnimation(fig, update, frames=len(res), interval=50, blit=True)
 
 ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])  # [izq, abajo, ancho, alto]
-slider = Slider(ax_slider, 'Frame', -10, 10, valinit=0, valstep=1)
+slider = Slider(ax_slider, 'Frame', -100, 100, valinit=0, valstep=1)
 def on_slider_update(val):
-    gamma = val
+    gamma = val / 100
+    state['gamma'] = gamma
     # frame = int(slider.val)
     # update(frame)
     # fig.canvas.draw_idle()
